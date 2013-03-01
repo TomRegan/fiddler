@@ -6,6 +6,7 @@ packages=(
     "http://downloads.puppetlabs.com/mac/puppet-3.1.0.dmg"
 )
 
+RESULT=''
 for package in ${packages[@]}; do
     FILENAME=$(basename ${package})
     [[ ! -f $FILENAME ]] && curl -O $package 2> /dev/null
@@ -15,4 +16,6 @@ for package in ${packages[@]}; do
     [[ $? != 0 ]] && installer -pkg /Volumes/${FILENAME/\.dmg}/${FILENAME/\.dmg/}.pkg -target / > /dev/null
     hdiutil unmount /Volumes/${FILENAME/\.dmg/} -force > /dev/null
     [[ -f $FILENAME ]] && rm $FILENAME
+    which ${FILENAME%%-*\.dmg} > /dev/null && RESULT=$RESULT"Package ${FILENAME%%-*\.dmg} installed succesfully\n"
 done
+echo -e ${RESULT%\\n}
