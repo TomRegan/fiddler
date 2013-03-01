@@ -9,13 +9,21 @@ packages=(
 RESULT=''
 for package in ${packages[@]}; do
     FILENAME=$(basename ${package})
-    [[ ! -f $FILENAME ]] && curl -O $package 2> /dev/null
-    [[ ! -d "/Volumes/${FILENAME/\.dmg/}" ]] && open $FILENAME
-    sleep 2 # short wait required before unmount
     which ${FILENAME%%-*\.dmg} > /dev/null
-    [[ $? != 0 ]] && installer -pkg /Volumes/${FILENAME/\.dmg}/${FILENAME/\.dmg/}.pkg -target / > /dev/null
-    hdiutil unmount /Volumes/${FILENAME/\.dmg/} -force > /dev/null
-    [[ -f $FILENAME ]] && rm $FILENAME
-    which ${FILENAME%%-*\.dmg} > /dev/null && RESULT=$RESULT"Package ${FILENAME%%-*\.dmg} installed succesfully\n"
+    if [[ $? != 0 ]]; then
+        [[ ! -f $FILENAME ]] && curl -O $package 2> /dev/null
+        [[ ! -d "/Volumes/${FILENAME/\.dmg/}" ]] && open $FILENAME
+        sleep 2 # short wait for mount to settle
+        installer -pkg /Volumes/${FILENAME/\.dmg}/${FILENAME/\.dmg/}.pkg -target / > /dev/null
+        hdiutil unmount /Volumes/${FILENAME/\.dmg/} -force > /dev/null
+        [[ -f $FILENAME ]] && rm $FILENAME
+        which ${FILENAME%%-*\.dmg} > /dev/null && RESULT=$RESULT"Package ${FILENAME%%-*\.dmg} installed successfully\n"
+    else
+        RESULT=$RESULT"Package ${FILENAME%%-*\.dmg} previously installed\n"
+    fi
 done
+
+puppet resource group puppet ensure=present > /dev/null
+puppet resource user puppet ensure=present > /dev/null
+
 echo -e ${RESULT%\\n}
